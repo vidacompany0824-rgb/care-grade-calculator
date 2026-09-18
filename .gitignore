@@ -1,0 +1,17 @@
+# 환경변수 — 실제 키는 절대 커밋하지 않습니다
+.env
+.env.local
+.env.*.local
+
+# 빌드 산출물
+dist/
+
+# 의존성
+node_modules/
+
+# Netlify
+.netlify/
+
+# OS
+.DS_Store
+Thumbs.db

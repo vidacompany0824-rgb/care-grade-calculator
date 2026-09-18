@@ -1,0 +1,15 @@
+{
+  "name": "care-grade-calculator",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "장기요양인정조사표 52개 항목 기반 요양등급 예측 및 돌봄비용 계산기 (골든레시피 교육 실습)",
+  "scripts": {
+    "build": "node scripts/build.js",
+    "dev": "npm run build && npx --yes serve dist -l 5173",
+    "test": "node scripts/test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

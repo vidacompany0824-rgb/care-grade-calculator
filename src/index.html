@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>요양등급·돌봄비용 계산기</title>
+<meta name="description" content="장기요양인정조사표 52개 항목을 문진해 예상 인정점수와 등급별 판정 확률을 계산하고, 2026년 수가 기준 실제 월 돌봄비용을 알려드립니다.">
+<meta property="og:title" content="요양등급·돌봄비용 계산기">
+<meta property="og:description" content="부모님이 요양등급을 받을 수 있을지, 한 달에 얼마가 드는지 3분 만에 확인하세요.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧮</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap">
+<link rel="stylesheet" href="styles.css">
+<script src="config.js"></script>
+</head>
+<body>
+
+<header>
+  <div class="wrap hd">
+    <div class="hd-l">
+      <div class="eyebrow">골든레시피 교육 실습</div>
+      <h1>요양등급·돌봄비용 계산기</h1>
+      <p class="sub">국민건강보험공단 「장기요양인정조사표」 52개 항목을 그대로 문진하고, 예상 인정점수·등급 확률과 2026년 수가 기준 실제 월 부담금을 계산합니다.</p>
+    </div>
+    <div class="stamp">
+      <span class="badge"><span class="dot"></span>2026년 수가 적용 <b>보건복지부 고시(2025.11.04.)</b></span>
+      <span class="badge">조사항목 <b>52개</b> · 교육용 추정 모델</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap grid">
+  <div>
+    <div class="casebar">
+      <span class="lbl">실습 사례</span>
+      <button class="chip" data-case="mild">사례 A · 경증</button>
+      <button class="chip" data-case="moderate">사례 B · 중등도 치매</button>
+      <button class="chip" data-case="severe">사례 C · 와상</button>
+      <button class="chip reset" data-case="clear">전부 초기화</button>
+    </div>
+
+    <section class="sec">
+      <div class="sec-hd"><span class="num">0</span><h2>기본 정보</h2><span class="cnt">신청 요건</span></div>
+      <div class="sec-body">
+        <div class="basics">
+          <div class="fld"><label for="age">연세</label><input type="number" id="age" min="40" max="120" value="82"></div>
+          <div class="fld"><label id="dem-label">치매 진단(의사소견서)</label>
+            <div class="pills" id="dementia" role="group" aria-labelledby="dem-label">
+              <button type="button" data-v="0">없음</button><button type="button" data-v="1">있음</button>
+            </div>
+          </div>
+          <div class="fld"><label for="tier">본인부담 감경 구분</label>
+            <select id="tier">
+              <option value="general">일반 (재가 15% / 시설 20%)</option>
+              <option value="r40">40% 감경 (재가 9% / 시설 12%)</option>
+              <option value="r60">60% 감경 (재가 6% / 시설 8%)</option>
+              <option value="basic">기초생활수급 (본인부담 0원)</option>
+            </select>
+          </div>
+        </div>
+        <p class="hint">65세 미만이라도 치매·뇌혈관질환 등 <b>노인성 질병</b>이 있으면 신청할 수 있습니다. 5등급과 인지지원등급은 <b>치매 진단이 반드시 필요</b>합니다.</p>
+      </div>
+    </section>
+
+    <section class="sec">
+      <div class="sec-hd"><span class="num">1</span><h2>신체기능</h2><span class="cnt">12항목</span><span class="tally" id="t-physical">0 / 24점</span></div>
+      <div class="sec-body"><div class="rows" id="physical"></div>
+        <p class="hint">최근 <b>한 달간 실제로 어떻게 해왔는지</b>를 기준으로 고르세요. 할 수 있는 능력이 아니라 실제 수행 상태를 봅니다. 이 영역이 인정점수에 가장 크게 반영됩니다.</p>
+      </div>
+    </section>
+
+    <section class="sec">
+      <div class="sec-hd"><span class="num">2</span><h2>인지기능</h2><span class="cnt">7항목</span><span class="tally" id="t-cognitive">0 / 7개</span></div>
+      <div class="sec-body"><div class="tg" id="cognitive"></div>
+        <p class="hint">해당하는 항목만 선택하세요.</p>
+      </div>
+    </section>
+
+    <section class="sec">
+      <div class="sec-hd"><span class="num">3</span><h2>행동변화</h2><span class="cnt">14항목</span><span class="tally" id="t-behavior">0 / 14개</span></div>
+      <div class="sec-body"><div class="tg" id="behavior"></div>
+        <p class="hint">최근 한 달간 <b>한 번이라도</b> 있었던 행동을 선택하세요.</p>
+      </div>
+    </section>
+
+    <section class="sec">
+      <div class="sec-hd"><span class="num">4</span><h2>간호처치</h2><span class="cnt">9항목</span><span class="tally" id="t-nursing">0 / 9개</span></div>
+      <div class="sec-body"><div class="tg" id="nursing"></div>
+        <p class="hint">의료적 처치가 필요한 상태입니다. 항목 수는 적지만 <b>점수 가중치가 높아</b> 등급을 크게 끌어올립니다.</p>
+      </div>
+    </section>
+
+    <section class="sec">
+      <div class="sec-hd"><span class="num">5</span><h2>재활</h2><span class="cnt">운동장애 4 + 관절제한 6</span><span class="tally" id="t-rehab">0 / 20점</span></div>
+      <div class="sec-body"><div class="rows" id="rehab"></div></div>
+    </section>
+
+    <details class="teach">
+      <summary><span class="num">?</span>이 계산은 어떻게 나왔나 — 강의용 해설</summary>
+      <div class="teach-bd">
+        <h4>실제 등급판정은 3단계를 거칩니다</h4>
+        <ul>
+          <li><b>1단계 인정조사</b> — 공단 직원이 집으로 방문해 52개 항목을 조사합니다. 이 계산기가 흉내 내는 부분입니다.</li>
+          <li><b>2단계 인정점수 산정</b> — 조사 결과를 8개 서비스군별 <b>수형분석(tree regression)</b> 모형에 넣어 필요 돌봄시간(분)을 추정하고, 이를 합산해 100점 만점의 장기요양인정점수를 냅니다.</li>
+          <li><b>3단계 등급판정위원회</b> — 인정점수에 <b>의사소견서</b>와 특기사항을 더해 최종 등급을 의결합니다. 점수가 경계선이면 위원회 판단으로 등급이 달라질 수 있습니다.</li>
+        </ul>
+
+        <h4>이 계산기의 추정식</h4>
+        <p>공단의 수형분석 모형은 공개되어 있지 않아 그대로 재현할 수 없습니다. 이 도구는 영역별 가중합으로 근사합니다.</p>
+        <p style="margin-top:8px"><code id="formula"></code></p>
+        <p style="margin-top:8px">기준선 25점은 신청자가 기본적으로 갖는 돌봄 필요시간을, 계수는 각 영역이 돌봄시간에 기여하는 상대적 비중을 반영합니다. 결과는 <b>±5.5점의 불확실성 구간</b>을 함께 계산해 정규분포로 등급별 확률을 냅니다. 점수 하나가 아니라 확률 분포로 답하는 것이 실제 판정의 불확실성에 더 정직한 표현입니다.</p>
+
+        <h4>등급 구간과 2026년 월 한도액</h4>
+        <div class="tblwrap"><table>
+          <thead><tr><th>등급</th><th>인정점수</th><th>추가 요건</th><th>재가 월 한도액</th></tr></thead>
+          <tbody id="gradetbl"></tbody>
+        </table></div>
+
+        <h4>수강생 실습 과제</h4>
+        <ul>
+          <li>사례 B(중등도 치매)에서 <b>간호처치 1개</b>만 추가로 켜 보세요. 점수가 몇 점 오르고 등급 확률이 어떻게 뒤집히는지 확인합니다.</li>
+          <li>같은 사례에서 <b>방문요양 → 요양원</b>으로 바꾸면 월 부담이 얼마나 달라지는지 비교하고, 그 차이가 생기는 이유(본인부담률 15%↔20%, 비급여 식사재료비)를 설명해 보세요.</li>
+          <li>사례 A는 등급이 나오지 않을 가능성이 큽니다. 이때 쓸 수 있는 대안 제도를 조사해 정리해 보세요.</li>
+          <li><code>src/scoring.js</code>의 가중치를 바꾸면 결과가 달라집니다. <b>AI가 내놓은 확률을 그대로 믿으면 안 되는 이유</b>를 이 구조로 설명해 보세요.</li>
+        </ul>
+      </div>
+    </details>
+  </div>
+
+  <aside class="rail">
+    <div class="card">
+      <div class="card-hd"><h3>예상 장기요양인정점수</h3></div>
+      <div class="card-bd">
+        <div class="score-top">
+          <span class="score-n" id="scoreN">0</span><span class="score-u">점 / 100</span>
+          <span class="score-band" id="scoreBand"></span>
+        </div>
+        <div class="track">
+          <div class="zones" id="zones"></div>
+          <div class="sigma" id="sigma"></div>
+          <div class="marker" id="marker"></div>
+          <div class="ticks" id="ticks"></div>
+        </div>
+        <div class="zlabels" id="zlabels"></div>
+        <div class="bd" id="breakdown" style="margin-top:14px"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd"><h3>등급별 판정 확률</h3></div>
+      <div class="card-bd">
+        <div class="pbars" id="pbars"></div>
+        <div class="verdict"><span class="vg" id="vGrade">—</span><span class="vt" id="vText"></span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd" style="padding-bottom:12px"><h3>월 실부담 돌봄비용</h3></div>
+      <div class="tabs" id="tabs" role="tablist">
+        <button type="button" role="tab" data-t="home" aria-selected="true">방문요양</button>
+        <button type="button" role="tab" data-t="day" aria-selected="false">주야간보호</button>
+        <button type="button" role="tab" data-t="fac" aria-selected="false">요양원</button>
+        <button type="button" role="tab" data-t="hosp" aria-selected="false">요양병원</button>
+      </div>
+      <div class="card-bd">
+        <div class="ctrl" id="ctrl"></div>
+        <div id="costOut"></div>
+        <div class="actions">
+          <button type="button" class="btn" id="copyBtn">결과 요약 복사</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd"><h3>결과 저장 · 상담 신청</h3></div>
+      <div class="card-bd">
+        <form id="submitForm" novalidate>
+          <div class="consent">
+            <label class="ck">
+              <input type="checkbox" id="consentStats">
+              <span><b>익명 통계 수집에 동의합니다.</b> <span style="color:var(--ink-3)">(선택)</span><br>
+              연세·문진 응답·계산 결과만 저장되며 개인을 특정할 수 없습니다.</span>
+            </label>
+            <label class="ck">
+              <input type="checkbox" id="consentConsult">
+              <span><b>상담 신청과 민감정보 수집에 동의합니다.</b> <span class="req">(상담 신청 시 필수)</span><br>
+              건강정보는 개인정보보호법상 민감정보로, 연락처와 함께 저장하려면 별도 동의가 필요합니다.</span>
+            </label>
+            <div class="consent-detail">
+              <dl>
+                <dt>수집 항목</dt><dd>이름, 연락처(휴대폰 또는 이메일), 문진 응답 및 계산 결과</dd>
+                <dt>이용 목적</dt><dd>요양등급 신청·돌봄 서비스 상담 제공</dd>
+                <dt>보관 기간</dt><dd>동의일로부터 <b>1년</b>, 이후 연락처는 자동 파기</dd>
+                <dt>거부 권리</dt><dd>동의를 거부해도 계산기는 그대로 이용할 수 있습니다</dd>
+              </dl>
+              <p style="margin-top:7px"><a href="privacy.html" target="_blank" rel="noopener">개인정보처리방침 전문 보기 ↗</a></p>
+            </div>
+          </div>
+
+          <div class="contact-fields" id="contactFields" hidden style="margin-top:14px">
+            <div class="fld">
+              <label for="cName">이름</label>
+              <input type="text" id="cName" autocomplete="name" placeholder="홍길동">
+            </div>
+            <div class="fld">
+              <label for="cPhone">휴대폰 번호</label>
+              <input type="tel" id="cPhone" autocomplete="tel" inputmode="numeric" placeholder="010-1234-5678">
+              <span class="err" id="errPhone" hidden></span>
+            </div>
+            <div class="fld">
+              <label for="cEmail">이메일 <span style="font-weight:400;color:var(--ink-3)">(선택)</span></label>
+              <input type="email" id="cEmail" autocomplete="email" placeholder="name@example.com">
+              <span class="err" id="errEmail" hidden></span>
+            </div>
+          </div>
+
+          <div id="formMsg" hidden style="margin-top:12px"></div>
+
+          <div class="actions">
+            <button type="submit" class="btn pri" id="submitBtn" disabled>결과 저장하기</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<footer><div class="wrap">
+  <b>이 결과는 공식 판정이 아닙니다.</b> 실제 등급은 국민건강보험공단 직원의 방문조사, 의사소견서, 등급판정위원회 심의를 거쳐 결정되며 이 추정과 다를 수 있습니다. 신청은 공단 지사 또는 노인장기요양보험 누리집(longtermcare.or.kr), 1577-1000에서 무료로 할 수 있습니다.
+  <div class="src">수가 출처 — 보건복지부 「장기요양급여 제공기준 및 급여비용 산정방법 등에 관한 고시」(2025.11.04. 개정, 2026.01.01. 시행). 비급여 식사재료비·상급침실료는 시설마다 다르므로 입력값으로 조정합니다. 요양병원 비용은 건강보험 적용 항목으로 장기요양보험과 별개이며 참고용 범위입니다.</div>
+  <nav>
+    <a href="privacy.html">개인정보처리방침</a>
+    <a href="https://www.longtermcare.or.kr" target="_blank" rel="noopener">노인장기요양보험 ↗</a>
+  </nav>
+</div></footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script type="module" src="app.js"></script>
+</body>
+</html>

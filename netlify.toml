@@ -1,0 +1,31 @@
+# Netlify 배포 설정
+#
+# 빌드라고 해봐야 src/ 를 dist/ 로 복사하면서 환경변수를 주입하는 게 전부입니다.
+# 번들러도 의존성도 없어서 배포가 몇 초면 끝납니다.
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# 보안 헤더
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "geolocation=(), microphone=(), camera=()"
+
+# 폰트·정적 자산 캐시
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
