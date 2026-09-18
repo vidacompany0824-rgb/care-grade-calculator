@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>관리자 — 요양등급 계산기</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔒</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+<!-- 로그인 -->
+<section class="wrap gate" id="gate">
+  <form id="gateForm">
+    <h1>관리자 조회</h1>
+    <p>제출 내역은 브라우저에서 직접 읽을 수 없습니다. 서버가 대신 조회해 결과만 내려줍니다.</p>
+    <div class="fld">
+      <label for="pw">관리자 비밀번호</label>
+      <input type="password" id="pw" autocomplete="current-password" required>
+      <span class="err" id="gateErr" hidden></span>
+    </div>
+    <button type="submit" class="btn pri" id="gateBtn">열기</button>
+    <p style="text-align:center"><a href="index.html" style="font-size:12.5px">← 계산기로 돌아가기</a></p>
+  </form>
+</section>
+
+<!-- 대시보드 -->
+<main class="wrap" id="dash" hidden>
+  <div class="abar">
+    <h1>제출 현황</h1>
+    <span class="meta" id="stamp"></span>
+    <span class="spacer"></span>
+    <button type="button" class="btn" id="refreshBtn">새로고침</button>
+    <button type="button" class="btn" id="revealBtn">연락처 보기</button>
+    <button type="button" class="btn" id="logoutBtn">잠그기</button>
+  </div>
+
+  <div class="tiles" id="tiles"></div>
+
+  <div class="charts">
+    <div class="chart wide">
+      <h2>최근 30일 제출 추이</h2>
+      <p class="cap">하루에 몇 건이 들어왔고, 그중 몇 건이 상담 신청으로 이어졌는지</p>
+      <div class="legend">
+        <em><i style="background:var(--c1)"></i>전체 제출</em>
+        <em><i style="background:var(--c2)"></i>상담 신청</em>
+      </div>
+      <div class="plot" id="plotDaily"><div class="tip" id="tipDaily"></div></div>
+    </div>
+
+    <div class="chart">
+      <h2>예측 등급 분포</h2>
+      <p class="cap">계산기가 내놓은 가장 유력한 등급 기준</p>
+      <div class="plot" id="plotGrade"><div class="tip" id="tipGrade"></div></div>
+    </div>
+
+    <div class="chart">
+      <h2>선택한 돌봄 방식</h2>
+      <p class="cap">비용을 계산할 때 마지막으로 보고 있던 시나리오</p>
+      <div class="plot" id="plotScenario"><div class="tip" id="tipScenario"></div></div>
+    </div>
+  </div>
+
+  <div class="ctable">
+    <div class="hd">
+      <h2>상담 신청</h2>
+      <span class="spacer"></span>
+      <span class="meta" id="consultCount"></span>
+    </div>
+    <div class="wrapx" id="consultWrap"></div>
+    <div class="reveal-note" id="revealNote"></div>
+  </div>
+</main>
+
+<script type="module" src="admin.js"></script>
+</body>
+</html>

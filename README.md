@@ -121,6 +121,50 @@ create policy "anon can submit" on public.care_submissions
 
 ---
 
+## 관리자 조회 페이지 (`/admin.html`)
+
+제출 현황을 보는 화면입니다. **여기가 이 프로젝트에서 제일 중요한 교육 포인트입니다.**
+
+anon key 는 INSERT 만 할 수 있으므로 브라우저에서는 제출 내역을 읽을 수 없습니다.
+조회하려면 RLS 를 우회하는 `service_role` 키가 필요한데, 이 키는 DB 전체를 여는 만능 키라
+브라우저에 내려보내면 안 됩니다. 그래서 키를 **서버리스 함수에만** 두고 결과만 넘깁니다.
+
+```
+브라우저  ──POST /api/admin (비밀번호)──▶  Netlify Function  ──service_role──▶  Supabase
+   ▲                                          (키는 여기서만 존재)                   │
+   └──────────── 집계된 결과 JSON ◀────────────────────────────────────────────────┘
+```
+
+### 필요한 환경변수 두 개
+
+터미널에서 아래를 실행하세요. **두 값 모두 저장소에 들어가지 않습니다.**
+
+```bash
+# 1) service_role 키 — Supabase 대시보드 → Project Settings → API → service_role
+npx netlify-cli env:set SUPABASE_SERVICE_ROLE_KEY "여기에_붙여넣기"
+
+# 2) 관리자 비밀번호 — 무작위 생성하고 화면에 한 번만 보여줍니다
+PW=$(openssl rand -base64 18); echo "관리자 비밀번호: $PW"; npx netlify-cli env:set ADMIN_PASSWORD "$PW"
+
+# 3) 재배포
+npx netlify-cli deploy --build --prod
+```
+
+### 민감정보 취급
+
+상담 신청자의 이름·연락처는 **서버에서 마스킹해서** 내려옵니다
+(`홍*동`, `010-****-5678`). 「연락처 보기」를 누를 때만 원본을 요청합니다.
+마스킹을 클라이언트에서 하면 개발자도구로 원본이 보이므로 서버에서 처리합니다.
+
+### 이 인증의 한계 — 솔직히
+
+공유 비밀번호 한 개로 막는 방식입니다. 상수 시간 비교와 실패 시 지연은 넣었지만,
+분산 무차별 대입에 대한 속도 제한은 없습니다. 실제 운영에서 민감정보를 다룬다면
+Supabase Auth 로 관리자 계정을 만들고 RLS 정책을 붙이거나,
+Netlify 의 사이트 비밀번호 보호를 함께 거는 편이 낫습니다.
+
+---
+
 ## 프로젝트 구조
 
 ```
@@ -136,7 +180,12 @@ care-grade-calculator/
 │   ├── cost.js             돌봄비용 계산
 │   ├── submit.js           Supabase REST 호출 (SDK 미사용)
 │   ├── config.template.js  빌드 시 환경변수가 주입되는 자리
-│   └── app.js              UI 컨트롤러
+│   ├── app.js              UI 컨트롤러
+│   ├── admin.html          관리자 조회 (noindex)
+│   ├── admin.css           차트 팔레트 (색맹 검증 통과)
+│   └── admin.js            대시보드 + 인라인 SVG 차트
+├── netlify/functions/
+│   └── admin.mjs           service_role 은 여기에만 존재
 ├── scripts/
 │   ├── build.js            src → dist 복사 + 환경변수 주입
 │   └── test.js             로직 검증 19개

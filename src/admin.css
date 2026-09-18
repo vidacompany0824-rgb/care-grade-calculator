@@ -1,0 +1,83 @@
+/* 관리자 대시보드 — styles.css 의 토큰을 그대로 쓰고 차트 색만 더합니다. */
+
+:root{
+  /* 차트 2계열 — dataviz 검증 통과 (CVD ΔE 14.1, 정상시력 ΔE 25.5) */
+  --c1:#00846C;          /* 전체 제출 */
+  --c2:#8B4FBF;          /* 상담 신청 */
+  --c1-fill:rgba(0,132,108,.14);
+  --c2-fill:rgba(139,79,191,.14);
+  --grid:#E8EDEA;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --c1:#1AA184; --c2:#9B6FD4;
+    --c1-fill:rgba(26,161,132,.18); --c2-fill:rgba(155,111,212,.18);
+    --grid:#26302B;
+  }
+}
+:root[data-theme="dark"]{
+  --c1:#1AA184; --c2:#9B6FD4;
+  --c1-fill:rgba(26,161,132,.18); --c2-fill:rgba(155,111,212,.18);
+  --grid:#26302B;
+}
+
+/* ── 로그인 ─────────────────────────────────────────────────────────── */
+.gate{min-height:78vh;display:grid;place-items:center;padding:32px 20px}
+.gate form{width:100%;max-width:360px;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r-lg);box-shadow:var(--shadow-lift);padding:28px 26px;display:flex;flex-direction:column;gap:16px}
+.gate h1{font-family:var(--serif);font-size:22px}
+.gate p{font-size:12.5px;color:var(--ink-3);line-height:1.6}
+
+/* ── 상단 바 ────────────────────────────────────────────────────────── */
+.abar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:18px 0 4px}
+.abar h1{font-family:var(--serif);font-size:24px}
+.abar .spacer{flex:1}
+.abar .meta{font-size:11.5px;color:var(--ink-3);font-family:var(--mono)}
+.abar .btn{flex:none;padding:8px 14px}
+
+/* ── 통계 타일 ──────────────────────────────────────────────────────── */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:12px;padding:16px 0 8px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;
+  display:flex;flex-direction:column;gap:5px}
+.tile .k{font-size:11.5px;color:var(--ink-3);font-weight:500}
+.tile .n{font-family:var(--mono);font-size:26px;font-weight:600;letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums;line-height:1.05}
+.tile .s{font-size:11px;color:var(--ink-3)}
+.tile.accent .n{color:var(--c1)}
+.tile.alt .n{color:var(--c2)}
+
+/* ── 차트 카드 ──────────────────────────────────────────────────────── */
+.charts{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:8px 0 16px}
+@media(max-width:880px){.charts{grid-template-columns:1fr}}
+.chart{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);
+  box-shadow:var(--shadow);padding:16px 18px 14px;min-width:0}
+.chart.wide{grid-column:1/-1}
+.chart h2{font-size:14px;letter-spacing:-.01em;margin-bottom:2px}
+.chart .cap{font-size:11.5px;color:var(--ink-3);margin-bottom:12px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--ink-2);margin-bottom:10px}
+.legend em{font-style:normal;display:inline-flex;align-items:center;gap:6px}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.plot{position:relative;width:100%}
+.plot svg{display:block;width:100%;height:auto;overflow:visible}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--ground);
+  border-radius:7px;padding:7px 10px;font-size:11.5px;line-height:1.5;white-space:nowrap;
+  opacity:0;transition:opacity .12s;z-index:5;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+.tip.on{opacity:1}
+.tip b{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.tip .sw{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px}
+
+/* ── 상담 신청 표 ───────────────────────────────────────────────────── */
+.ctable{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);
+  box-shadow:var(--shadow);overflow:hidden;margin-bottom:40px}
+.ctable .hd{display:flex;align-items:center;gap:12px;padding:15px 18px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.ctable .hd h2{font-size:14px}
+.ctable .hd .spacer{flex:1}
+.ctable .wrapx{overflow-x:auto}
+.ctable table{min-width:660px}
+.ctable td.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.ctable .grade{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;
+  background:var(--accent-soft);color:var(--accent-ink)}
+.ctable .empty{padding:36px 18px;text-align:center;color:var(--ink-3);font-size:13px}
+.reveal-note{font-size:11.5px;color:var(--ink-3);padding:10px 18px;border-top:1px solid var(--line);
+  background:var(--surface-2)}
+.reveal-note b{color:var(--crit)}

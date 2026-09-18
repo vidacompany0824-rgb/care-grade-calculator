@@ -6,6 +6,7 @@
 [build]
   command = "npm run build"
   publish = "dist"
+  functions = "netlify/functions"
 
 [build.environment]
   NODE_VERSION = "20"
@@ -29,3 +30,15 @@
   for = "/*.js"
   [headers.values]
     Cache-Control = "public, max-age=3600"
+
+# 관리자 페이지와 API 는 검색엔진에 노출하지 않습니다.
+[[headers]]
+  for = "/admin.html"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+    Cache-Control = "no-store"
