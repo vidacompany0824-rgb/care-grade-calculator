@@ -20,6 +20,9 @@ const won = (n) => Math.round(n).toLocaleString('ko-KR');
 const S = {
   age: 82,
   hasDementia: true,
+  /** 사용자가 실제로 '확인한' 항목. 진행률을 정직하게 세기 위한 것. */
+  touched: { physical: new Set(), cognitive: new Set(), behavior: new Set(), nursing: new Set(), rehab: new Set() },
+  basicsTouched: false,
   tier: 'general',
   physical: [], cognitive: [], behavior: [], nursing: [], rehabMotor: [], rehabJoint: [],
   scenario: 'home',
@@ -39,6 +42,18 @@ function loadCase(key) {
     physical: [...c.physical], cognitive: [...c.cognitive], behavior: [...c.behavior],
     nursing: [...c.nursing], rehabMotor: [...c.rehabMotor], rehabJoint: [...c.rehabJoint],
   });
+  if (key === 'clear') {
+    S.touched = { physical: new Set(), cognitive: new Set(), behavior: new Set(), nursing: new Set(), rehab: new Set() };
+    S.basicsTouched = false;
+  } else {
+    // 실습 사례는 전부 확인한 상태로 본다.
+    S.touched = {
+      physical: new Set(PHYSICAL.keys()), cognitive: new Set(COGNITIVE.keys()),
+      behavior: new Set(BEHAVIOR.keys()), nursing: new Set(NURSING.keys()),
+      rehab: new Set(Array.from({ length: REHAB_MOTOR.length + REHAB_JOINT.length }, (_, i) => i)),
+    };
+    S.basicsTouched = true;
+  }
 }
 
 /* ── 문진표 만들기 ────────────────────────────────────────────────────── */
@@ -78,16 +93,35 @@ function toggleGrid(el, items, key) {
     const tx = document.createElement('span');
     tx.textContent = label;
     b.append(bx, tx);
-    b.addEventListener('click', () => { S[key][i] = S[key][i] ? 0 : 1; render(); });
+    b.addEventListener('click', () => {
+      S[key][i] = S[key][i] ? 0 : 1;
+      // 하나라도 누르면 이 영역을 확인한 것으로 본다.
+      items.forEach((_, k) => S.touched[key].add(k));
+      render();
+    });
     el.appendChild(b);
   });
+
+  // '해당 없음' — 아무것도 고르지 않은 것과 아직 안 본 것을 구분하기 위해 필요하다.
+  const none = document.createElement('button');
+  none.type = 'button';
+  none.className = 'none-btn';
+  none.textContent = '이 영역은 해당 사항 없음';
+  none.addEventListener('click', () => {
+    items.forEach((_, k) => { S[key][k] = 0; S.touched[key].add(k); });
+    render();
+  });
+  el.parentElement.querySelector('.none-btn')?.remove();
+  el.insertAdjacentElement('afterend', none);
 }
 
 function buildQuestions() {
   const ph = $('physical');
   ph.innerHTML = '';
   PHYSICAL.forEach((nm, i) =>
-    ph.appendChild(segRow(nm, S.physical[i], PHYSICAL_LEVELS, (v) => { S.physical[i] = v; })));
+    ph.appendChild(segRow(nm, S.physical[i], PHYSICAL_LEVELS, (v) => {
+      S.physical[i] = v; S.touched.physical.add(i);
+    })));
 
   toggleGrid($('cognitive'), COGNITIVE, 'cognitive');
   toggleGrid($('behavior'), BEHAVIOR, 'behavior');
@@ -96,9 +130,13 @@ function buildQuestions() {
   const rh = $('rehab');
   rh.innerHTML = '';
   REHAB_MOTOR.forEach((nm, i) =>
-    rh.appendChild(segRow(`운동장애 · ${nm}`, S.rehabMotor[i], REHAB_MOTOR_LEVELS, (v) => { S.rehabMotor[i] = v; })));
+    rh.appendChild(segRow(`운동장애 · ${nm}`, S.rehabMotor[i], REHAB_MOTOR_LEVELS, (v) => {
+      S.rehabMotor[i] = v; S.touched.rehab.add(i);
+    })));
   REHAB_JOINT.forEach((nm, i) =>
-    rh.appendChild(segRow(`관절제한 · ${nm}`, S.rehabJoint[i], REHAB_JOINT_LEVELS, (v) => { S.rehabJoint[i] = v; })));
+    rh.appendChild(segRow(`관절제한 · ${nm}`, S.rehabJoint[i], REHAB_JOINT_LEVELS, (v) => {
+      S.rehabJoint[i] = v; S.touched.rehab.add(REHAB_MOTOR.length + i);
+    })));
 
   $('age').value = String(S.age);
   document.querySelectorAll('#dementia button')
@@ -313,64 +351,93 @@ function render() {
   buildControls();
   renderCost();
   syncPressed();
+  renderProgress();
+  applyLock();
 }
 
-/* ── 제출 폼 ──────────────────────────────────────────────────────────── */
+/* ── 진행률 ───────────────────────────────────────────────────────────── */
+const SECTIONS = [
+  { key: 'physical',  label: '신체기능', total: PHYSICAL.length },
+  { key: 'cognitive', label: '인지기능', total: COGNITIVE.length },
+  { key: 'behavior',  label: '행동변화', total: BEHAVIOR.length },
+  { key: 'nursing',   label: '간호처치', total: NURSING.length },
+  { key: 'rehab',     label: '재활',     total: REHAB_MOTOR.length + REHAB_JOINT.length },
+];
+const TOTAL_ITEMS = SECTIONS.reduce((a, s) => a + s.total, 0); // 52
+
+function renderProgress() {
+  const done = SECTIONS.reduce((a, sec) => a + S.touched[sec.key].size, 0);
+  const ratio = done / TOTAL_ITEMS;
+
+  $('progN').textContent = String(done);
+  $('progPct').textContent = `${Math.round(ratio * 100)}%`;
+  $('progFill').style.width = `${ratio * 100}%`;
+
+  $('checklist').innerHTML = [
+    { label: '기본 정보', now: S.basicsTouched ? 1 : 0, total: 1, unit: '' },
+    ...SECTIONS.map((sec) => ({ label: sec.label, now: S.touched[sec.key].size, total: sec.total, unit: '항목' })),
+  ].map((r) =>
+    `<li class="${r.now >= r.total ? 'done' : ''}"><span class="mk"></span>`
+  + `<span>${r.label}</span>`
+  + `<span class="ct">${r.unit ? `${r.now} / ${r.total}` : (r.now ? '확인' : '미확인')}</span></li>`
+  ).join('');
+}
+
+/* ── 결과 잠금/해제 ───────────────────────────────────────────────────── */
+let unlocked = sessionStorage.getItem('resultsUnlocked') === '1';
+
+function applyLock() {
+  $('gateCard').hidden = unlocked;
+  $('results').hidden = !unlocked;
+}
+
+function openModal() {
+  $('leadModal').hidden = false;
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => $('mName').focus(), 50);
+}
+function closeModal() {
+  $('leadModal').hidden = true;
+  document.body.style.overflow = '';
+}
+
+/* ── 폼 검증 ──────────────────────────────────────────────────────────── */
 const PHONE_RE = /^01[016789]-?\d{3,4}-?\d{4}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-function showMsg(kind, text) {
-  const el = $('formMsg');
+function setErr(inputId, errId, message) {
+  const input = $(inputId);
+  const err = $(errId);
+  input.setAttribute('aria-invalid', String(Boolean(message)));
+  err.textContent = message ?? '';
+  err.hidden = !message;
+  return !message;
+}
+
+function validateLead() {
+  const name = $('mName').value.trim();
+  const phone = $('mPhone').value.trim();
+  const email = $('mEmail').value.trim();
+
+  let ok = true;
+  ok = setErr('mName', 'mErrName', name ? null : '이름을 입력해 주세요.') && ok;
+  ok = setErr('mPhone', 'mErrPhone', !phone
+    ? '연락받으실 휴대폰 번호를 입력해 주세요.'
+    : (!PHONE_RE.test(phone) ? '휴대폰 번호 형식이 올바르지 않습니다. 예) 010-1234-5678' : null)) && ok;
+  ok = setErr('mEmail', 'mErrEmail', email && !EMAIL_RE.test(email) ? '이메일 형식이 올바르지 않습니다.' : null) && ok;
+  return ok;
+}
+
+function showModalMsg(kind, text) {
+  const el = $('modalMsg');
   el.className = `form-msg ${kind}`;
   el.textContent = text;
   el.hidden = false;
 }
-function clearMsg() { $('formMsg').hidden = true; }
-
-function updateFormState() {
-  const consult = $('consentConsult').checked;
-  const stats = $('consentStats').checked;
-  $('contactFields').hidden = !consult;
-  const btn = $('submitBtn');
-  btn.textContent = consult ? '상담 신청하기' : '결과 저장하기';
-
-  if (!isConfigured()) {
-    btn.disabled = true;
-    btn.title = '서버가 연결되지 않아 저장이 비활성화되어 있습니다.';
-    return;
-  }
-  btn.disabled = !(stats || consult);
-  btn.title = btn.disabled ? '동의 항목을 하나 이상 선택해 주세요.' : '';
-}
-
-function validateContact() {
-  let ok = true;
-  const phone = $('cPhone').value.trim();
-  const email = $('cEmail').value.trim();
-
-  const setErr = (inputId, errId, message) => {
-    const input = $(inputId);
-    const err = $(errId);
-    input.setAttribute('aria-invalid', String(Boolean(message)));
-    err.textContent = message ?? '';
-    err.hidden = !message;
-    if (message) ok = false;
-  };
-
-  setErr('cPhone', 'errPhone', !phone
-    ? '연락받으실 휴대폰 번호를 입력해 주세요.'
-    : (!PHONE_RE.test(phone) ? '휴대폰 번호 형식이 올바르지 않습니다. 예) 010-1234-5678' : null));
-  setErr('cEmail', 'errEmail', email && !EMAIL_RE.test(email) ? '이메일 형식이 올바르지 않습니다.' : null);
-
-  return ok;
-}
 
 function buildRow() {
-  const consult = $('consentConsult').checked;
   const { res, probs, grade } = LAST;
-  const cost = LAST.cost;
-
-  const row = {
+  return {
     age: S.age || null,
     has_dementia: Boolean(S.hasDementia),
     benefit_tier: S.tier,
@@ -384,52 +451,54 @@ function buildRow() {
     predicted_grade: grade,
     care_scenario: S.scenario,
     scenario_input: S.input[S.scenario],
-    monthly_cost: Math.round(cost?.total ?? 0),
+    monthly_cost: Math.round(LAST.cost?.total ?? 0),
     rate_year: RATE_YEAR,
-    wants_consult: consult,
+    wants_consult: true,
+    name: $('mName').value.trim(),
+    phone: $('mPhone').value.trim(),
+    email: $('mEmail').value.trim() || null,
+    consent_sensitive: true,
+    consent_at: new Date().toISOString(),
     ...trackingInfo(),
   };
-
-  if (consult) {
-    row.name = $('cName').value.trim() || null;
-    row.phone = $('cPhone').value.trim() || null;
-    row.email = $('cEmail').value.trim() || null;
-    row.consent_sensitive = true;
-    row.consent_at = new Date().toISOString();
-  }
-  return row;
 }
 
-async function onSubmit(e) {
+async function onLeadSubmit(e) {
   e.preventDefault();
-  clearMsg();
+  $('modalMsg').hidden = true;
 
-  const consult = $('consentConsult').checked;
-  if (consult && !validateContact()) {
-    showMsg('bad', '입력하신 내용을 다시 확인해 주세요.');
+  if (!$('mConsent').checked) {
+    showModalMsg('bad', '개인정보 수집·이용에 동의해야 결과를 확인할 수 있습니다.');
+    return;
+  }
+  if (!validateLead()) {
+    showModalMsg('bad', '입력하신 내용을 다시 확인해 주세요.');
     return;
   }
 
-  const btn = $('submitBtn');
-  const label = btn.textContent;
+  const btn = $('modalSubmit');
   btn.disabled = true;
   btn.textContent = '보내는 중…';
 
-  const result = await submitAssessment(buildRow());
+  const result = isConfigured()
+    ? await submitAssessment(buildRow())
+    : { ok: true, offline: true };  // 서버 미연결이어도 결과는 보여준다
 
-  if (result.ok) {
-    showMsg('ok', consult
-      ? '상담 신청이 접수되었습니다. 영업일 기준 1~2일 내에 연락드리겠습니다.'
-      : '결과가 저장되었습니다. 참여해 주셔서 감사합니다.');
-    $('submitForm').querySelectorAll('input').forEach((i) => {
-      if (i.type === 'checkbox') i.checked = false; else i.value = '';
-    });
-    updateFormState();
-  } else {
-    showMsg('bad', result.error);
-    btn.disabled = false;
-    btn.textContent = label;
+  btn.disabled = false;
+  btn.textContent = '결과 확인하기';
+
+  if (!result.ok) {
+    showModalMsg('bad', result.error);
+    return;
   }
+
+  unlocked = true;
+  sessionStorage.setItem('resultsUnlocked', '1');
+  applyLock();
+  render();
+  closeModal();
+  toast('결과가 준비되었습니다');
+  $('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 /* ── 이벤트 연결 ──────────────────────────────────────────────────────── */
@@ -437,11 +506,14 @@ function wire() {
   $('age').addEventListener('input', (e) => {
     const v = Number(e.target.value);
     S.age = Number.isFinite(v) ? v : 0;
+    S.basicsTouched = true;
+    renderProgress();
   });
 
   document.querySelectorAll('#dementia button').forEach((b) => {
     b.addEventListener('click', () => {
       S.hasDementia = b.dataset.v === '1';
+      S.basicsTouched = true;
       document.querySelectorAll('#dementia button')
         .forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
       render();
@@ -469,9 +541,14 @@ function wire() {
   });
 
   $('copyBtn').addEventListener('click', copySummary);
-  $('consentStats').addEventListener('change', updateFormState);
-  $('consentConsult').addEventListener('change', () => { clearMsg(); updateFormState(); });
-  $('submitForm').addEventListener('submit', onSubmit);
+
+  $('openGate').addEventListener('click', openModal);
+  $('modalClose').addEventListener('click', closeModal);
+  $('modalScrim').addEventListener('click', closeModal);
+  $('leadForm').addEventListener('submit', onLeadSubmit);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !$('leadModal').hidden) closeModal();
+  });
 }
 
 let toastTimer;
@@ -518,13 +595,15 @@ function fillTeaching() {
 }
 
 /* ── 시작 ─────────────────────────────────────────────────────────────── */
-loadCase('moderate');
+// 결과를 잠그는 흐름이므로 빈 상태로 시작합니다.
+// (강의 시연은 상단의 '실습 사례' 버튼으로 채웁니다.)
+loadCase('clear');
 buildQuestions();
 buildTrack();
 fillTeaching();
 wire();
+applyLock();
 render();
-updateFormState();
 
 if (!isConfigured()) {
   console.warn('[care-calculator] Supabase 미설정 — 계산기는 동작하지만 저장은 비활성화됩니다.');

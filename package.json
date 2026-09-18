@@ -7,7 +7,8 @@
   "scripts": {
     "build": "node scripts/build.js",
     "dev": "npm run build && npx --yes serve dist -l 5173",
-    "test": "node scripts/test.js"
+    "test": "node scripts/test.js",
+    "setup:admin": "bash scripts/setup-admin.sh"
   },
   "engines": {
     "node": ">=20"
