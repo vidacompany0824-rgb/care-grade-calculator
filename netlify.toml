@@ -20,16 +20,22 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "geolocation=(), microphone=(), camera=()"
 
-# 폰트·정적 자산 캐시
+# JS/CSS 캐시
+#
+# 빌드가 모든 에셋 URL에 내용 기반 해시(?v=…)를 붙이므로 코드가 바뀌면 URL이 바뀐다.
+# 그럼에도 max-age=0, must-revalidate 로 둔다 — 해시 주입이 어떤 이유로든 실패했을 때
+# 브라우저가 옛 JS를 붙든 채 새 HTML을 실행하는 사고를 원천 차단하기 위해서다.
+# (실제로 max-age=3600 으로 뒀다가 "새 HTML + 옛 JS" 로 화면이 죽은 적이 있다.)
+# 사이트가 작아 ETag 재검증 비용은 304 한 번이면 끝난다.
 [[headers]]
   for = "/*.css"
   [headers.values]
-    Cache-Control = "public, max-age=3600"
+    Cache-Control = "public, max-age=0, must-revalidate"
 
 [[headers]]
   for = "/*.js"
   [headers.values]
-    Cache-Control = "public, max-age=3600"
+    Cache-Control = "public, max-age=0, must-revalidate"
 
 # 관리자 페이지와 API 는 검색엔진에 노출하지 않습니다.
 [[headers]]
