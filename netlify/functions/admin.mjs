@@ -66,11 +66,18 @@ export default async (req) => {
   const SERVICE = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const PASSWORD = process.env.ADMIN_PASSWORD;
 
-  if (!URL_ || !SERVICE) {
-    return json({ error: 'SUPABASE_URL 또는 SUPABASE_SERVICE_ROLE_KEY 가 설정되지 않았습니다.' }, 500);
-  }
-  if (!PASSWORD) {
-    return json({ error: 'ADMIN_PASSWORD 가 설정되지 않아 접근을 차단했습니다.' }, 500);
+  const missing = [
+    !URL_ && 'SUPABASE_URL',
+    !SERVICE && 'SUPABASE_SERVICE_ROLE_KEY',
+    !PASSWORD && 'ADMIN_PASSWORD',
+  ].filter(Boolean);
+
+  if (missing.length) {
+    return json({
+      error: `환경변수 ${missing.join(', ')} 가 설정되지 않았습니다. `
+           + 'Netlify → Site configuration → Environment variables 에서 등록한 뒤 재배포하세요.',
+      missing,
+    }, 500);
   }
 
   let body;
